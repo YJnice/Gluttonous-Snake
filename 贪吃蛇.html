@@ -1,0 +1,254 @@
+<!-- 16.07.12 JP -->
+<!-- 游戏规则 蛇的速度随关卡而提升，当蛇撞到墙壁或身体时游戏结束 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>贪吃蛇1.0</title>
+	<style>
+		*{
+			margin: 0;
+			padding: 0;
+		}
+		#container{
+			width: 1000px;
+			height: 550px;
+			border: 1px solid #000;
+			position: absolute;
+			top: 200px;
+			left: 50%;
+			margin-left: -500px;
+		}
+		#ground{
+			width: 1000px;
+			height: 500px;
+			background: #ccc;
+			position: absolute;
+		}
+		#control{
+			width: 1000px;
+			height: 50px;
+			line-height: 50px;
+			position: absolute;
+			top: 500px;
+		}
+		#brand{
+			float: left;
+			margin-left: 10px;
+		}
+		#buttons{
+			float: right;
+			margin-right: 10px;
+		}
+		#start,#pause{
+			width: 60px;
+			height: 30px;
+		}
+		#score{
+			
+		}
+		.block{
+			width: 20px;
+			height: 20px;
+			box-shadow:1px 1px 1px 0px rgba(255,255,255,.3);
+			float: left;
+		}
+		.snake-block{
+			position: absolute;
+			top: 60px;
+			border-radius:0;
+			background:url(snakebody.png);
+		}
+		.food-block{
+			position: absolute;
+			background:url(food.png);
+		}
+	</style>
+</head>
+<body>
+	<div id="container">
+		<div id="ground"></div>
+		<div id="control">
+			<div id="brand">当前得分:
+				<span id="score"></span>
+			</div>
+			<div id="buttons">
+				<button id="start">开始</button>
+				<button id="pause">暂停</button>
+			</div>
+		</div>
+	</div>
+	<script>
+		(function(){
+			var oGround = document.getElementById('ground');
+			var oStart = document.getElementById('start');
+			var oPause = document.getElementById('pause');
+			var oScore = document.getElementById('score');
+			var orientation = 'right';
+			var snakeBody = [];
+			var goal = 0;
+			var speed = 200;
+			var timer;
+			var oFood;
+			var bStart = true;//能否点击开始 true能点击 flase点击无效
+			//初始化草场
+			for(var i=0; i<50*25;i++){
+				var oDiv = document.createElement('div');
+				oDiv.className = 'block';
+				oGround.appendChild(oDiv);
+			}
+			//创建蛇
+			for(var i=0;i<3;i++){
+				var oDiv = document.createElement('div');
+				oDiv.className = 'block snake-block';
+				oDiv.style.left = (3-i)*20+'px';
+				oGround.appendChild(oDiv);
+				snakeBody.push(oDiv);
+			}
+			//蛇头为snakeBody[0]
+			var snakeHead = snakeBody[0];
+			snakeHead.style.background = 'url(snakeheadR.png)';
+			//创建食物
+			createFood();
+			function createFood(){
+				do{
+					var bFlag = false;//标识位 false表示食物与蛇身重复
+					var iLeft = parseInt(Math.random() * 50) * 20;//0-980之间的20的倍数
+					var iTop = parseInt(Math.random() * 25) * 20;
+					for(var i=0; i<snakeBody.length;i++){
+						if(snakeBody[i].offsetLeft == iLeft && snakeBody[i].offsetTop ==iTop){
+							bFlag = true;
+						}
+					}
+				}while(bFlag);
+				oFood = document.createElement('div');
+				oFood.className = 'block food-block';
+				oFood.style.left = iLeft + 'px';
+				oFood.style.top = iTop + 'px';
+				oGround.appendChild(oFood);
+			}
+			//蛇移动
+			oStart.onclick = function(){
+				if (bStart) {
+					set();
+					bStart = false;
+				};
+			};
+			//得分情况
+			oScore.innerHTML = goal;
+			//建立定时器
+			function set(){
+				timer = setInterval(function(){
+					move();
+				},speed);
+			}
+			//蛇移动函数
+			function move(){
+				var nextPos;
+				if(orientation =='left'){
+					nextPos = {
+						left:snakeHead.offsetLeft - 20,
+						top:snakeHead.offsetTop
+					};
+				}else if(orientation =='right'){
+					nextPos = {
+						left:snakeHead.offsetLeft + 20,
+						top:snakeHead.offsetTop
+					};
+				}else if(orientation =='top'){
+					nextPos = {
+						left:snakeHead.offsetLeft,
+						top:snakeHead.offsetTop - 20
+					};
+				}else if(orientation =='down'){
+					nextPos = {
+						left:snakeHead.offsetLeft,
+						top:snakeHead.offsetTop + 20
+					};
+				};
+				//吃食物
+				if(nextPos.left == oFood.offsetLeft && nextPos.top == oFood.offsetTop){
+					oFood.className = 'block snake-block';
+					oFood.style.left = snakeHead.offsetLeft + 'px';
+					oFood.style.top = snakeHead.offsetTop + 'px';
+					snakeHead.style.left = nextPos.left + 'px';
+					snakeHead.style.top = nextPos.top + 'px';
+					snakeBody.splice(1,0,oFood);
+					createFood();
+					goal++;
+					oScore.innerHTML = goal*10;
+					if (speed>70) {
+						speed = speed-parseInt(Math.random() * 7);
+					}else{
+						speed = 70;
+					}
+					console.log(speed);
+				}else{
+					for(i=0;i<snakeBody.length;i++){
+						var nowPos = {
+							left:snakeBody[i].offsetLeft,
+							top:snakeBody[i].offsetTop
+						};
+						snakeBody[i].style.left = nextPos.left+'px';
+						snakeBody[i].style.top = nextPos.top+'px';
+						nextPos = nowPos;
+					};
+				};
+				//死亡机制 撞墙或身体
+				if (snakeHead.offsetLeft>980||snakeHead.offsetLeft<0||snakeHead.offsetTop>480||snakeHead.offsetTop<0) {
+						alert('Game Over!');
+						clearInterval(timer);
+				};
+				for(var i=4; i<snakeBody.length; i++){
+					if(snakeBody[i].offsetLeft == snakeHead.offsetLeft && snakeBody[i].offsetTop == snakeHead.offsetTop){
+						alert('Game Over!');
+						clearInterval(timer);
+					}
+				}
+			}
+			//改变蛇移动方向
+			document.onkeydown = function(e){
+				e = e || window.event;
+				var keyCode = e.which || e,keyCode;
+				if(keyCode == 37){
+					if (orientation != 'right' && orientation != 'left') {
+						clearInterval(timer);
+						set();
+						orientation = 'left';
+						snakeHead.style.WebkitTransform = 'rotate('+180+'deg)';
+						move();
+					};		
+				}else if(keyCode == 38){
+					if (orientation != 'down' && orientation != 'top') {
+						clearInterval(timer);
+						set();
+						orientation = 'top';
+						snakeHead.style.WebkitTransform = 'rotate('+270+'deg)';
+						move();
+					};
+				}else if(keyCode == 39){
+					if (orientation != 'left' && orientation != 'right') {
+						clearInterval(timer);
+						set();
+						orientation = 'right';
+						snakeHead.style.WebkitTransform = 'rotate('+0+'deg)';
+						move();
+					};
+				}else if(keyCode == 40){
+					if (orientation != 'top' && orientation != 'down') {
+						clearInterval(timer);
+						set();
+						orientation = 'down';
+						snakeHead.style.WebkitTransform = 'rotate('+90+'deg)';
+						move();
+					};
+				};
+			};
+			oPause.onclick = function(){
+				clearInterval(timer);
+				bStart = true;
+			};
+		})();
+	</script>
+</body>
+</html>
